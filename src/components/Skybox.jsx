@@ -3,10 +3,12 @@ import { useThree, useFrame } from '@react-three/fiber'
 import { useRef, useMemo } from 'react'
 import * as THREE from 'three'
 
-useTexture.preload('/skybox.webp')
+const skyboxPath = `${import.meta.env.BASE_URL}skybox.webp`
+
+useTexture.preload(skyboxPath)
 
 function Skybox() {
-  const texture = useTexture('/skybox.webp')
+  const texture = useTexture(skyboxPath)
   const meshRef = useRef()
   const { camera, size } = useThree()
 

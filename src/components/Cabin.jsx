@@ -2,9 +2,11 @@ import { useRef } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 
+const modelPath = `${import.meta.env.BASE_URL}chalupka-transformed.glb`
+
 function Cabin(props) {
   const groupRef = useRef()
-  const { nodes, materials } = useGLTF('/chalupka-transformed.glb')
+  const { nodes, materials } = useGLTF(modelPath)
 
   // Subtle floating animation
   useFrame((state) => {
@@ -26,7 +28,7 @@ function Cabin(props) {
   )
 }
 
-// Preload the model with Draco decoder
-useGLTF.preload('/chalupka-transformed.glb')
+// Preload the model
+useGLTF.preload(modelPath)
 
 export default Cabin
