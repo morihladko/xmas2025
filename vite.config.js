@@ -5,5 +5,5 @@ export default defineConfig({
   plugins: [react()],
   assetsInclude: ['**/*.glb'],
   // For GitHub Pages: use repo name as base path in CI
-  base: process.env.CI ? '/xmas2025/' : '/',
+  base: '/xmas2025/',
 })
