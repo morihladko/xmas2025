@@ -1,28 +1,90 @@
 import { useProgress } from '@react-three/drei'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { t } from '../i18n'
+
+const audioPathWebm = `${import.meta.env.BASE_URL}podmaz.webm`
+const audioPathAac = `${import.meta.env.BASE_URL}podmaz.m4a`
 
 function Loader() {
   const { progress, active } = useProgress()
-  const [visible, setVisible] = useState(true)
+  const [phase, setPhase] = useState('loading')
+  const [audioLoaded, setAudioLoaded] = useState(false)
+  const [fontLoaded, setFontLoaded] = useState(false)
+  const audioRef = useRef(null)
 
-  // Hide loader after loading completes with a small delay
+  // Preload font
   useEffect(() => {
-    if (progress === 100 && !active) {
-      const timer = setTimeout(() => setVisible(false), 500)
+    document.fonts.load('1em "Fascinate Inline"').then(() => {
+      setFontLoaded(true)
+    }).catch(() => {
+      setFontLoaded(true)
+    })
+  }, [])
+
+  // Preload audio
+  useEffect(() => {
+    const audio = new Audio()
+
+    // Detect iOS (iPhone/iPod only, iPad uses desktop Safari with WebM support)
+    const isIOS = /iPhone|iPod/.test(navigator.userAgent)
+    const canPlayWebm = audio.canPlayType('audio/webm')
+
+    let audioPath
+    if (isIOS) {
+      audioPath = audioPathAac
+    } else if (canPlayWebm === 'probably' || canPlayWebm === 'maybe') {
+      audioPath = audioPathWebm
+    } else {
+      setAudioLoaded(true)
+      return
+    }
+
+    audio.src = audioPath
+    audio.loop = true
+    audio.preload = 'auto'
+
+    audio.addEventListener('canplaythrough', () => {
+      setAudioLoaded(true)
+    })
+
+    audio.addEventListener('error', () => {
+      setAudioLoaded(true)
+    })
+
+    // Fallback timeout
+    const timeout = setTimeout(() => {
+      setAudioLoaded(true)
+    }, 5000)
+
+    audioRef.current = audio
+
+    return () => {
+      clearTimeout(timeout)
+      audio.pause()
+      audio.src = ''
+    }
+  }, [])
+
+  // Transition to ready state when assets, audio, and font are loaded
+  useEffect(() => {
+    if (progress === 100 && !active && audioLoaded && fontLoaded) {
+      const timer = setTimeout(() => setPhase('ready'), 500)
       return () => clearTimeout(timer)
     }
-  }, [progress, active])
+  }, [progress, active, audioLoaded, fontLoaded])
 
-  if (!visible) return null
+  const handlePlay = () => {
+    if (audioRef.current) {
+      audioRef.current.play()
+      setPhase('playing')
+    }
+  }
 
-  // Calculate which segments to draw based on progress
-  // Each side is 25% of total progress
-  // Order: top (0-25%), right (25-50%), bottom (50-75%), left (75-100%)
+  if (phase === 'playing') return null
+
   const size = 120
   const strokeWidth = 3
   const halfStroke = strokeWidth / 2
-
-  // Calculate dash arrays for each side
   const sideLength = size - strokeWidth
 
   const getSegmentProgress = (segmentStart, segmentEnd) => {
@@ -36,6 +98,8 @@ function Loader() {
   const bottomProgress = getSegmentProgress(50, 75)
   const leftProgress = getSegmentProgress(75, 100)
 
+  const isLoading = phase === 'loading'
+
   return (
     <div style={{
       position: 'fixed',
@@ -47,92 +111,113 @@ function Loader() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(180deg, #0a1628 0%, #1a2a4a 100%)',
+      background: isLoading
+        ? 'linear-gradient(180deg, #0a1628 0%, #1a2a4a 100%)'
+        : 'rgba(0, 0, 0, 0.3)',
+      backdropFilter: isLoading ? 'none' : 'blur(10px)',
       zIndex: 1000,
-      transition: 'opacity 0.5s ease-out',
-      opacity: progress === 100 ? 0 : 1,
+      transition: 'background 0.5s ease-out, backdrop-filter 0.5s ease-out',
     }}>
-      <div style={{
-        position: 'relative',
-        width: size,
-        height: size,
-      }}>
-        <svg
-          width={size}
-          height={size}
-          style={{ position: 'absolute', top: 0, left: 0 }}
-        >
-          {/* Top edge - left to right */}
-          <line
-            x1={halfStroke}
-            y1={halfStroke}
-            x2={size - halfStroke}
-            y2={halfStroke}
-            stroke="#ffffff"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeDasharray={sideLength}
-            strokeDashoffset={sideLength - (sideLength * topProgress / 100)}
-            style={{ transition: 'stroke-dashoffset 0.1s ease-out' }}
-          />
-
-          {/* Right edge - top to bottom */}
-          <line
-            x1={size - halfStroke}
-            y1={halfStroke}
-            x2={size - halfStroke}
-            y2={size - halfStroke}
-            stroke="#ffffff"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeDasharray={sideLength}
-            strokeDashoffset={sideLength - (sideLength * rightProgress / 100)}
-            style={{ transition: 'stroke-dashoffset 0.1s ease-out' }}
-          />
-
-          {/* Bottom edge - right to left */}
-          <line
-            x1={size - halfStroke}
-            y1={size - halfStroke}
-            x2={halfStroke}
-            y2={size - halfStroke}
-            stroke="#ffffff"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeDasharray={sideLength}
-            strokeDashoffset={sideLength - (sideLength * bottomProgress / 100)}
-            style={{ transition: 'stroke-dashoffset 0.1s ease-out' }}
-          />
-
-          {/* Left edge - bottom to top */}
-          <line
-            x1={halfStroke}
-            y1={size - halfStroke}
-            x2={halfStroke}
-            y2={halfStroke}
-            stroke="#ffffff"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeDasharray={sideLength}
-            strokeDashoffset={sideLength - (sideLength * leftProgress / 100)}
-            style={{ transition: 'stroke-dashoffset 0.1s ease-out' }}
-          />
-        </svg>
-
-        {/* Progress percentage in center */}
+      {isLoading ? (
         <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          color: '#ffffff',
-          fontFamily: 'monospace',
-          fontSize: '14px',
-          opacity: 0.8,
+          position: 'relative',
+          width: size,
+          height: size,
         }}>
-          {Math.round(progress)}%
+          <svg
+            width={size}
+            height={size}
+            style={{ position: 'absolute', top: 0, left: 0 }}
+          >
+            <line
+              x1={halfStroke}
+              y1={halfStroke}
+              x2={size - halfStroke}
+              y2={halfStroke}
+              stroke="#ffffff"
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={sideLength}
+              strokeDashoffset={sideLength - (sideLength * topProgress / 100)}
+              style={{ transition: 'stroke-dashoffset 0.1s ease-out' }}
+            />
+            <line
+              x1={size - halfStroke}
+              y1={halfStroke}
+              x2={size - halfStroke}
+              y2={size - halfStroke}
+              stroke="#ffffff"
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={sideLength}
+              strokeDashoffset={sideLength - (sideLength * rightProgress / 100)}
+              style={{ transition: 'stroke-dashoffset 0.1s ease-out' }}
+            />
+            <line
+              x1={size - halfStroke}
+              y1={size - halfStroke}
+              x2={halfStroke}
+              y2={size - halfStroke}
+              stroke="#ffffff"
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={sideLength}
+              strokeDashoffset={sideLength - (sideLength * bottomProgress / 100)}
+              style={{ transition: 'stroke-dashoffset 0.1s ease-out' }}
+            />
+            <line
+              x1={halfStroke}
+              y1={size - halfStroke}
+              x2={halfStroke}
+              y2={halfStroke}
+              stroke="#ffffff"
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={sideLength}
+              strokeDashoffset={sideLength - (sideLength * leftProgress / 100)}
+              style={{ transition: 'stroke-dashoffset 0.1s ease-out' }}
+            />
+          </svg>
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            color: '#ffffff',
+            fontFamily: 'monospace',
+            fontSize: '14px',
+            opacity: 0.8,
+          }}>
+            {Math.round(progress)}%
+          </div>
         </div>
-      </div>
+      ) : (
+        <button
+          onClick={handlePlay}
+          style={{
+            padding: '20px 60px',
+            fontSize: '24px',
+            fontFamily: 'monospace',
+            background: 'rgba(255, 255, 255, 0.15)',
+            backdropFilter: 'blur(10px)',
+            border: '2px solid rgba(255, 255, 255, 0.5)',
+            borderRadius: '12px',
+            color: '#ffffff',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseOver={(e) => {
+            e.target.style.background = 'rgba(255, 255, 255, 0.25)'
+            e.target.style.transform = 'scale(1.05)'
+          }}
+          onMouseOut={(e) => {
+            e.target.style.background = 'rgba(255, 255, 255, 0.15)'
+            e.target.style.transform = 'scale(1)'
+          }}
+        >
+          {t('play')}
+        </button>
+      )}
     </div>
   )
 }

@@ -25,8 +25,8 @@ function Scene() {
         maxDistance={4}
         minPolarAngle={Math.PI / 4}
         maxPolarAngle={Math.PI / 2}
-        minAzimuthAngle={-Math.PI / 18}
-        maxAzimuthAngle={Math.PI / 18}
+        minAzimuthAngle={-Math.PI / 2}
+        maxAzimuthAngle={Math.PI / 2}
         target={[0, 0.7, 0]}
       />
 
