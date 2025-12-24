@@ -3,11 +3,13 @@ const translations = {
     greeting: 'Veselé Vianoce\na\nŠťastný Nový rok',
     year: 'Vianoce 2025',
     play: 'Prehraj',
+    title: 'Interaktívna 3D vianočná pohľadnica',
   },
   en: {
     greeting: 'Merry Christmas\nand\nHappy New Year',
     year: 'Christmas 2025',
     play: 'Play',
+    title: 'A festive 3D Christmas postcard',
   },
 }
 

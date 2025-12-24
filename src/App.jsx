@@ -4,6 +4,9 @@ import Scene from './components/Scene'
 import Loader from './components/Loader'
 import { t } from './i18n'
 
+// Set document title from i18n
+document.title = t('title')
+
 function FestiveText() {
   return (
     <div style={{
